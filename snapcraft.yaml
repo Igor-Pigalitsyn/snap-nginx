@@ -1,0 +1,41 @@
+name: nginx-custom
+version: 0.0.1
+summary: small, powerful, scalable web/proxy server
+description: Nginx ("engine X") is a high-performance web and reverse proxy server created by Igor Sysoev. It can be used both as a standalone web server and as a proxy to reduce the load on back-end HTTP or mail servers.
+
+grade: devel 
+confinement: strict
+
+apps:
+  nginx:
+    command: bin/nginx
+    #daemon: forking
+    #stop-command: bin/nginx -s stop
+    stop-timeout: 10s
+    plugs: [network, network-bind]
+
+parts:
+  nginx:
+    plugin: autotools
+    source: https://github.com/seanlano/nginx.git
+    source-type: git
+    source-tag: release-1.13.6_snap-fix
+    override-build: |
+      snapcraftctl build
+      wget https://sourceforge.net/projects/libpng/files/zlib/1.2.11/zlib-1.2.11.tar.gz/download -O zlib.tar.gz
+      mkdir zlib
+      tar xvf zlib.tar.gz --strip-components 1 -C zlib/
+      wget https://ftp.pcre.org/pub/pcre/pcre-8.41.tar.bz2 -O pcre.tar.bz2
+      mkdir pcre
+      tar xvf pcre.tar.bz2 --strip-components 1 -C pcre/
+      auto/configure --prefix=/var/snap/nginx-custom/current --conf-path=/var/snap/nginx-custom/current/nginx.conf --pid-path=/var/snap/nginx-custom/current/nginx.pid --with-zlib=zlib/ --with-pcre=pcre/ --error-log-path=/var/snap/nginx-custom/common/logs/error.log --http-log-path=/var/snap/nginx-custom/common/logs/nginx.log
+      make
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin
+      cp objs/nginx $SNAPCRAFT_PART_INSTALL/bin/nginx
+    build-packages:
+        - libc6
+        - libgd3
+        - libgeoip1
+        - libssl1.0.0
+        - libxml2
+        - libxslt1.1
